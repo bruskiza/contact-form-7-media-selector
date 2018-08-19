@@ -89,3 +89,62 @@ function run_contact_form_7_media_selector() {
 
 }
 run_contact_form_7_media_selector();
+
+
+/**
+	*
+	*
+	*/
+add_shortcode('media-selector', 'get_emailable_attachments');
+
+function get_emailable_attachments() {
+	$query_images_args = array(
+    'post_type'      => 'attachment',
+    'post_mime_type' => 'image',
+    'post_status'    => 'inherit',
+    'posts_per_page' => - 1,
+	);
+
+	$query_images = new WP_Query( $query_images_args );
+
+	$images = array();
+	$counter = 0;
+	$msg = "<p><label>Files To Send</label></p><span class='wpcf7-form-control wpcf7-checkbox'>";
+	foreach ( $query_images->posts as $image ) {
+		$file = get_attached_file( $image->ID );
+		$file_size = sprintf("%.2f", filesize($file) / 1024 / 1024) . " MB";
+    $msg .= "<input name='cf7-media-selector-{$counter}' type='checkbox' value='{$image->ID}'>{$image->post_title} ({$file_size})</input><br/>\n";
+		error_log(print_r($image, true));
+		// error_log( print_r("Filename: " . $file, true) );
+		// error_log( print_r("File size: " . $file_size, true) );
+		$counter += 1;
+	}
+	$msg .= "</span>";
+
+	return $msg;
+
+
+}
+
+
+add_action( 'wpcf7_before_send_mail', 'send_attachment_file' );
+function send_attachment_file($cf7) {
+	error_log("In here...");
+	error_log(print_r($cf7, true));
+	if ($cf7->id==872) {
+		$uploads = wp_upload_dir();     // will output the array of path,url,subdir,basedir,baseurl,error -- what we need is the path = '/home/euroling/public_html/beta/wp-content/uploads/2013/01'
+		//define some constants
+		define ('PRICE_UPLOAD_PATH',$uploads['path'].'/price');     // create price folder in the path
+	 	if ($cf7->mail['use_html']==true)
+	 		$nl="<br/>";
+		else
+			$nl="\n";
+			$pdf_filename = "testnew.pdf";
+	 		$cf7->uploaded_files = array( 'file_upload' => PRICE_UPLOAD_PATH .'/'.$pdf_filename );
+
+			//append some text to the outgoing email
+	 		$message=$nl.$nl.'Blah blah blah.....'.$nl;
+	 		$message.='So Long, and Thanks for All the Fish!'.$nl;
+			$cf7->mail_2['body'].=$message;
+		}
+}
